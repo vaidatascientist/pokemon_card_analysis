@@ -6,8 +6,8 @@ from playwright.async_api import async_playwright
 
 base_url = "https://yuyu-tei.jp/sell/poc/s/search?search_word=&rare="
 rarities = ["UR", "HR", "SR", "SAR", "CSR", "SSR", "PROMO"]
-csv_path = "/Users/vaibhavgupta/Desktop/pokemon_price/card_info/base_card_info.csv"
-price_csv_path = "/Users/vaibhavgupta/Desktop/pokemon_price/card_info/card_price.csv"
+csv_path = "/Users/vaibhavgupta/Desktop/pokemon_card_analysis/card_info/base_card_info.csv"
+price_csv_path = "/Users/vaibhavgupta/Desktop/pokemon_card_analysis/card_info/card_price.csv"
 
 # Get the current date in YYYYMMDD format for column naming
 current_date = datetime.now().strftime("%Y%m%d")
@@ -48,6 +48,7 @@ async def scrape_price(playwright, rarity):
         results_price.append({
             "index": index,
             "card_name": card_name,
+            "img_src": img_src,
             price_column: clean_price,  # Dynamically set the column name
         })
         
@@ -84,27 +85,27 @@ async def scrape_all():
             df_existing_price = pd.read_csv(price_csv_path, dtype=str)
         except FileNotFoundError:
             print(f"{price_csv_path} not found. Creating a new one.")
-            df_existing_price = pd.DataFrame(columns=["index", "card_name"])
-
-        # Use `index` + `card_name` as the composite key
-        df_existing_price["unique_key"] = df_existing_price["index"] + "_" + df_existing_price["card_name"]
-        df_price["unique_key"] = df_price["index"] + "_" + df_price["card_name"]
-        df_info["unique_key"] = df_info["index"] + "_" + df_info["card_name"]
-
+            df_existing_price = pd.DataFrame(columns=["index", "card_name", "img_src"])
+            
+        # Use `index` + `card_name` + `img_src` as the composite key
+        df_existing_price["unique_key"] = df_existing_price["index"] + "_" + df_existing_price["card_name"] + "_" + df_existing_price["img_src"].astype(str)
+        df_price["unique_key"] = df_price["index"] + "_" + df_price["card_name"] + "_" + df_price["img_src"].astype(str)
+        df_info["unique_key"] = df_info["index"] + "_" + df_info["card_name"] + "_" + df_info["img_src"].astype(str)
+        
         # Find new unique entries
         new_entries = df_info[~df_info["unique_key"].isin(df_existing_price["unique_key"])]
 
         if not new_entries.empty:
             # Append new unique entries to df_existing_price
-            df_existing_price = pd.concat([df_existing_price, new_entries[["index", "card_name"]]], ignore_index=True)
+            df_existing_price = pd.concat([df_existing_price, new_entries[["index", "card_name", "img_src"]]], ignore_index=True)
             print(f"Added {len(new_entries)} new card entries to {price_csv_path}")
-
+            
         # Merge price data using `unique_key`
         df_existing_price.set_index("unique_key", inplace=True)
         df_price.set_index("unique_key", inplace=True)
 
         # Update price column
-        df_existing_price[price_column] = df_price.get(price_column, pd.NA)
+        df_existing_price[price_column] = df_price[price_column].astype(int)
         df_existing_price.reset_index(inplace=True)
         df_existing_price.drop(columns=['unique_key'], inplace=True)
 
@@ -113,6 +114,7 @@ async def scrape_all():
         print(f"Updated data saved to {price_csv_path} with column {price_column}")
 
         # Save new card information
+        df_info.drop(columns=['unique_key'], inplace=True)
         df_info.to_csv(csv_path, index=False, encoding="utf-8-sig")
         print(f"Base card info saved to {csv_path}")
 
