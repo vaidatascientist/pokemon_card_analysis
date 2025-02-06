@@ -13,6 +13,9 @@ price_csv_path = "/Users/vaibhavgupta/Desktop/pokemon_card_analysis/card_info/ca
 current_date = datetime.now().strftime("%Y%m%d")
 price_column = f"p_{current_date}"
 
+# The placeholder image for "under printing" cards
+PLACEHOLDER_IMG_SRC = "https://img.yuyu-tei.jp/card_image/noimage_100_140.jpg"
+
 async def scrape_price(playwright, rarity):
     """Scrape a single rarity page."""
     print(f"Scraping: {base_url + rarity}")
@@ -87,27 +90,39 @@ async def scrape_all():
             print(f"{price_csv_path} not found. Creating a new one.")
             df_existing_price = pd.DataFrame(columns=["index", "card_name", "img_src"])
             
-        # Use `index` + `card_name` + `img_src` as the composite key
+        # Use `index + card_name + img_src` as the composite key
         df_existing_price["unique_key"] = df_existing_price["index"] + "_" + df_existing_price["card_name"] + "_" + df_existing_price["img_src"].astype(str)
         df_price["unique_key"] = df_price["index"] + "_" + df_price["card_name"] + "_" + df_price["img_src"].astype(str)
         df_info["unique_key"] = df_info["index"] + "_" + df_info["card_name"] + "_" + df_info["img_src"].astype(str)
-        
-        # Find new unique entries
-        new_entries = df_info[~df_info["unique_key"].isin(df_existing_price["unique_key"])]
 
-        if not new_entries.empty:
-            # Append new unique entries to df_existing_price
-            df_existing_price = pd.concat([df_existing_price, new_entries[["index", "card_name", "img_src"]]], ignore_index=True)
-            print(f"Added {len(new_entries)} new card entries to {price_csv_path}")
-            
         # Merge price data using `unique_key`
         df_existing_price.set_index("unique_key", inplace=True)
         df_price.set_index("unique_key", inplace=True)
 
-        # Update price column
-        df_existing_price[price_column] = df_price[price_column].astype(int)
+        # Update prices
+        df_existing_price[price_column] = df_price[price_column].astype('Int64')
         df_existing_price.reset_index(inplace=True)
         df_existing_price.drop(columns=['unique_key'], inplace=True)
+
+        # Handle img_src updates for multiple "to be printed" cases
+        for i, row in df_info.iterrows():
+            # Find all rows with the same `index` and `card_name`
+            existing_rows = df_existing_price[
+                (df_existing_price["index"] == row["index"]) & 
+                (df_existing_price["card_name"] == row["card_name"])
+            ]
+
+            if not existing_rows.empty:
+                new_img_src = row["img_src"]
+
+                # Iterate through all matching rows
+                for idx in existing_rows.index:
+                    existing_img_src = df_existing_price.at[idx, "img_src"]
+
+                    # Update only if the old img_src was the placeholder and the new one is real
+                    if existing_img_src == PLACEHOLDER_IMG_SRC and new_img_src != PLACEHOLDER_IMG_SRC:
+                        df_existing_price.at[idx, "img_src"] = new_img_src
+                        print(f"Updated image for {row['card_name']} ({row['index']}) at row {idx}")
 
         # Save updated price CSV
         df_existing_price.to_csv(price_csv_path, index=False, encoding="utf-8-sig")
