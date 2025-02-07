@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Card Search</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"> -->
+    <link rel="stylesheet" href="../static/style.css">
     <script>
         async function searchCards() {
             let query = document.getElementById("search-box").value;
@@ -37,7 +38,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>Neon Card Search</h1>
+        <h1>Card Search</h1>
         <div class="search-container">
             <input type="text" id="search-box" placeholder="Search for a card..." onkeyup="searchCards()">
         </div>
