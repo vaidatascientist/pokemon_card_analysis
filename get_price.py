@@ -101,15 +101,21 @@ async def scrape_all():
 
         # Update prices
         df_existing_price[price_column] = df_price[price_column].astype('Int64')
-        df_existing_price.reset_index(inplace=True)
-        df_existing_price.drop(columns=['unique_key'], inplace=True)
+        
+        new_rows = df_price.index.difference(df_existing_price.index)
+        df_new = df_price.loc[new_rows]
+
+        # Append the new rows
+        df_updated = pd.concat([df_existing_price, df_new], sort=False)
+        df_updated.reset_index(inplace=True)
+        df_updated.drop(columns=['unique_key'], inplace=True)
 
         # Handle img_src updates for multiple "to be printed" cases
         for i, row in df_info.iterrows():
             # Find all rows with the same `index` and `card_name`
-            existing_rows = df_existing_price[
-                (df_existing_price["index"] == row["index"]) & 
-                (df_existing_price["card_name"] == row["card_name"])
+            existing_rows = df_updated[
+                (df_updated["index"] == row["index"]) & 
+                (df_updated["card_name"] == row["card_name"])
             ]
 
             if not existing_rows.empty:
@@ -117,15 +123,15 @@ async def scrape_all():
 
                 # Iterate through all matching rows
                 for idx in existing_rows.index:
-                    existing_img_src = df_existing_price.at[idx, "img_src"]
+                    existing_img_src = df_updated.at[idx, "img_src"]
 
                     # Update only if the old img_src was the placeholder and the new one is real
                     if existing_img_src == PLACEHOLDER_IMG_SRC and new_img_src != PLACEHOLDER_IMG_SRC:
-                        df_existing_price.at[idx, "img_src"] = new_img_src
+                        df_updated.at[idx, "img_src"] = new_img_src
                         print(f"Updated image for {row['card_name']} ({row['index']}) at row {idx}")
 
         # Save updated price CSV
-        df_existing_price.to_csv(price_csv_path, index=False, encoding="utf-8-sig")
+        df_updated.to_csv(price_csv_path, index=False, encoding="utf-8-sig")
         print(f"Updated data saved to {price_csv_path} with column {price_column}")
 
         # Save new card information
