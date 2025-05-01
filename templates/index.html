@@ -1,48 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Card Search</title>
-    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"> -->
-    <link rel="stylesheet" href="../static/style.css">
-    <script>
-        async function searchCards() {
-            let query = document.getElementById("search-box").value;
-            if (query.length < 1) {
-                document.getElementById("results").innerHTML = "";
-                return;
-            }
-
-            let response = await fetch(`/search?q=${encodeURIComponent(query)}`);
-            let data = await response.json();
-
-            let resultsDiv = document.getElementById("results");
-            resultsDiv.innerHTML = "";
-
-            data.slice(0, 5).forEach(card => {  // Limit to 5 results
-                let resultItem = document.createElement("div");
-                resultItem.classList.add("result-item");
-                resultItem.innerHTML = `
-                    <img src="${card.img_src}" alt="Card Image">
-                    <div class="result-info">
-                        <h3>${card.card_name}</h3>
-                        <p><strong>Rarity:</strong> ${card.rarity}</p>
-                        <p><strong>Index:</strong> ${card.index}</p>
-                    </div>
-                `;
-                resultsDiv.appendChild(resultItem);
-            });
-        }
-    </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Card Grid</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' };
+  </script>
+  <script>
+    if (
+      localStorage.theme === 'dark' ||
+      (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    ) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
 </head>
-<body>
-    <div class="container">
-        <h1>Card Search</h1>
-        <div class="search-container">
-            <input type="text" id="search-box" placeholder="Search for a card..." onkeyup="searchCards()">
-        </div>
-        <div id="results"></div>
+<body class="bg-gray-100 dark:bg-gray-900 dark:text-white p-8">
+  <h1 class="text-3xl font-bold mb-6 text-center">Pokémon Card Grid</h1>
+
+  <!-- Unified Filter Form -->
+  <form method="get" class="flex flex-wrap items-center justify-center gap-4 mb-6">
+    <!-- Rarity Dropdown -->
+    <div class="flex items-center gap-2">
+      <label for="rarity" class="text-sm">Rarity:</label>
+      <select name="rarity" id="rarity" class="px-2 py-1 rounded text-black">
+        <option value="">All</option>
+        {% for rarity in rarities %}
+        <option value="{{ rarity }}" {% if request.args.get('rarity') == rarity %}selected{% endif %}>{{ rarity }}</option>
+        {% endfor %}
+      </select>
     </div>
+
+    <!-- Name Input -->
+    <div class="flex items-center gap-2">
+      <label for="name" class="text-sm">Name:</label>
+      <input type="text" name="name" id="name"
+             value="{{ request.args.get('name', '') }}"
+             placeholder="e.g., ピカチュウ"
+             class="px-2 py-1 rounded text-black"
+      />
+    </div>
+
+    <!-- Search Button -->
+    <button type="submit" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">Search</button>
+
+    {% if request.args.get('rarity') or request.args.get('name') %}
+    <a href="{{ url_for('index') }}"
+       class="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600">Clear Filters</a>
+    {% endif %}
+  </form>
+
+  <!-- Card Grid -->
+  <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+    {% for card in cards %}
+    <a href="{{ url_for('card_detail', card_id=card.id) }}"
+       class="bg-white dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg shadow hover:shadow-lg transition p-3 text-black dark:text-white relative">
+
+      <img src="{{ card.image }}" alt="{{ card.name }}" class="w-full h-48 object-contain mb-2" />
+      <h2 class="text-sm font-semibold">{{ card.name }}</h2>
+      <p class="text-xs text-gray-500 dark:text-gray-400">{{ card.rarity }}</p>
+
+      {% if card.price %}
+      <p class="text-m font-semibold absolute bottom-2 right-2 text-emerald-200">¥{{ card.price | int }}</p>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
 </body>
 </html>
