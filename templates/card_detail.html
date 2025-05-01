@@ -25,35 +25,86 @@
     <a href="/" class="text-blue-600 dark:text-blue-400 underline text-sm mb-4 inline-block">← Back to all cards</a>
     <div class="flex flex-col md:flex-row gap-6">
       <img src="{{ card.img_src }}" alt="{{ card.card_name }}" class="w-60 h-80 object-contain border" />
-      <div>
+      <div class="flex flex-col gap-2">
         <h1 class="text-2xl font-bold">{{ card.card_name }}</h1>
-        <p class="text-gray-600 dark:text-gray-400 mb-4">Rarity: {{ card.rarity }}</p>
-        <canvas id="priceChart" class="mt-6"></canvas>
+        <p class="text-gray-600 dark:text-gray-400">Rarity: {{ card.rarity }}</p>
+        {% if latest_price %}
+        <p class="text-green-300 font-semibold text-lg">Current Price: ¥{{ "{:,}".format(latest_price) }}</p>
+        {% else %}
+        <p class="text-yellow-300 font-semibold text-lg">Current Price: Not Available</p>
+        {% endif %}
+        <div class="mt-6">
+          <h2 class="text-md font-semibold mb-2">Price Trend</h2>
+          <canvas id="priceChart" width="600" height="300" class="w-full max-w-full h-64"></canvas>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
-    const priceData = JSON.parse('{{ price_data | tojson | safe }}');
-    const ctx = document.getElementById('priceChart').getContext('2d');
-    const chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: priceData.labels,
-        datasets: [{
-          label: 'Price (¥)',
-          data: priceData.prices,
-          borderColor: 'rgb(75, 192, 192)',
-          tension: 0.3,
-          fill: false
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: { beginAtZero: false }
+    document.addEventListener("DOMContentLoaded", function () {
+      const rawData = {{ price_data | safe }};
+
+      // Extract monthly price (first price of each month)
+      const formatMonth = dateStr => `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}`;
+      const monthlyMap = {};
+
+      rawData.labels.forEach((label, i) => {
+        const month = formatMonth(label);
+        if (!monthlyMap[month]) {
+          monthlyMap[month] = rawData.prices[i];
         }
-      }
+      });
+
+      const months = Object.keys(monthlyMap);
+      const prices = Object.values(monthlyMap);
+
+      const ctx = document.getElementById('priceChart').getContext('2d');
+      new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: months,
+          datasets: [{
+            data: prices,
+            borderColor: 'rgb(75, 192, 192)',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 0,
+            pointHoverRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => `¥${ctx.raw.toLocaleString()}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: {
+                color: '#ffffff'
+              },
+              grid: {
+                color: 'rgba(255,255,255,0.1)'
+              }
+            },
+            y: {
+              ticks: {
+                color: '#ffffff',
+                callback: value => '¥' + value.toLocaleString()
+              },
+              grid: {
+                color: 'rgba(255,255,255,0.1)'
+              }
+            }
+          }
+        }
+      });
     });
   </script>
 </body>

@@ -131,13 +131,13 @@ async def scrape_all():
                         print(f"Updated image for {row['card_name']} ({row['index']}) at row {idx}")
 
         # Save updated price CSV
-        df_updated["pack"] = df_updated["img_src"].apply(lambda url: url.split("/")[-2]) ########
+        df_updated.insert(1, "pack", df_updated["img_src"].apply(lambda url: url.split("/")[-2]))
         df_updated.to_csv(price_csv_path, index=False, encoding="utf-8-sig")
         print(f"Updated data saved to {price_csv_path} with column {price_column}")
 
         # Save new card information
         df_info.drop(columns=['unique_key'], inplace=True)
-        df_info["pack"] = df_info["img_src"].apply(lambda url: url.split("/")[-2]) ########
+        df_info.insert(1, "pack", df_info["img_src"].apply(lambda url: url.split("/")[-2])) ########
         df_info.to_csv(csv_path, index=False, encoding="utf-8-sig")
         print(f"Base card info saved to {csv_path}")
 

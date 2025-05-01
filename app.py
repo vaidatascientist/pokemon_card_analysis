@@ -43,16 +43,20 @@ def index():
 
 @app.route("/card/<int:card_id>")
 def card_detail(card_id):
-    try:
-        row = card_df.iloc[card_id]
-    except IndexError:
-        return "Card not found", 404
+    row = card_df.iloc[card_id]
+    price_cols = [col for col in card_df.columns if col.startswith("p_")]
+    latest_price_col = price_cols[-1]
+    latest_price = row[latest_price_col]
 
     price_data = {
-        "labels": [col.replace("p_", "") for col in card_df.columns if col.startswith("p_")],
-        "prices": [row[col] for col in card_df.columns if col.startswith("p_")]
+        "labels": [col.replace("p_", "") for col in price_cols],
+        "prices": [row[col] for col in price_cols]
     }
-    return render_template("card_detail.html", card=row.to_dict(), price_data=json.dumps(price_data))
+
+    return render_template("card_detail.html",
+                           card=row.to_dict(),
+                           price_data=json.dumps(price_data),
+                           latest_price=int(latest_price) if pd.notnull(latest_price) else None)
 
 if __name__ == "__main__":
     app.run(debug=True)
