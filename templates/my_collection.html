@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Collection</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = { darkMode: 'class' };
+  </script>
+  <script>
+    if (
+      localStorage.theme === 'dark' ||
+      (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    ) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 dark:text-white min-h-screen">
+  <!-- Navigation Bar -->
+  <nav class="bg-white dark:bg-gray-800 shadow p-4 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>
+      <span class="font-bold text-lg">CardTracker</span>
+    </div>
+    <div class="flex items-center gap-6 font-semibold">
+      <a href="/"
+         class="text-sm {% if request.path == '/' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">Explore All Cards</a>
+      <a href="/my-collection"
+         class="text-sm {% if request.path == '/my-collection' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">My Collection</a>
+      {% if not session.get('user_id') %}
+      <a href="/login"
+         class="text-sm {% if request.path == '/login' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">Log In</a>
+      {% else %}
+      <span class="text-sm text-gray-400">Logged in as {{ session['username'] }}</span>
+      <a href="/logout" class="text-sm text-red-400 hover:text-red-600">Log Out</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <div class="p-8 max-w-6xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6 text-center">My Collection</h1>
+
+    {% if collection %}
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+      {% for card in collection %}
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <img src="{{ card.image }}" alt="{{ card.name }}" class="w-full h-48 object-contain mb-2" />
+        <h2 class="text-lg font-bold">{{ card.name }}</h2>
+        <p class="text-sm text-gray-400">{{ card.rarity }}</p>
+        <p class="text-sm mt-2">Purchase Price: <span class="text-yellow-400 font-medium">¥{{ card.purchase_price | int }}</span></p>
+        <p class="text-sm">Current Price: <span class="text-green-300 font-medium">¥{{ card.current_price | int }}</span></p>
+        {% if card.profit is not none %}
+        <p class="text-sm mt-1">
+          Profit/Loss:
+          <span class="{% if card.profit >= 0 %}text-green-400{% else %}text-red-400{% endif %} font-semibold">
+            ¥{{ "{:,}".format(card.profit | int) }}
+          </span>
+        </p>
+        {% endif %}
+        <p class="text-xs text-gray-400 mt-2">Saved on: {{ card.purchase_date }}</p>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="text-center text-gray-400">You haven't saved any cards yet.</p>
+    {% endif %}
+  </div>
+</body>
+</html>

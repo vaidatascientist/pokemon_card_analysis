@@ -20,8 +20,29 @@
   </script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="bg-gray-100 dark:bg-gray-900 dark:text-white p-6">
-  <div class="max-w-4xl mx-auto bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+<body class="bg-gray-100 dark:bg-gray-900 dark:text-white min-h-screen">
+  <!-- Navigation Bar -->
+  <nav class="bg-white dark:bg-gray-800 shadow p-4 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>
+      <span class="font-bold text-lg">CardTracker</span>
+    </div>
+    <div class="flex items-center gap-6 font-semibold">
+      <a href="/"
+         class="text-sm {% if request.path == '/' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">Explore All Cards</a>
+      <a href="/my-collection"
+         class="text-sm {% if request.path == '/my-collection' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">My Collection</a>
+      {% if not session.get('user_id') %}
+      <a href="/login"
+         class="text-sm {% if request.path == '/login' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">Log In</a>
+      {% else %}
+      <span class="text-sm text-gray-400">Logged in as {{ session['username'] }}</span>
+      <a href="/logout" class="text-sm text-red-400 hover:text-red-600">Log Out</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <div class="max-w-4xl mx-auto bg-white dark:bg-gray-800 shadow rounded-lg p-6 mt-8">
     <a href="/" class="text-blue-600 dark:text-blue-400 underline text-sm mb-4 inline-block">← Back to all cards</a>
     <div class="flex flex-col md:flex-row gap-6">
       <img src="{{ card.img_src }}" alt="{{ card.card_name }}" class="w-60 h-80 object-contain border" />
@@ -33,6 +54,21 @@
         {% else %}
         <p class="text-yellow-300 font-semibold text-lg">Current Price: Not Available</p>
         {% endif %}
+
+        {% if session.get('user_id') %}
+        <form method="POST" class="mt-4">
+          <div class="flex items-center gap-4">
+            <input type="number" name="purchase_price" step="0.01" min="0"
+                   placeholder="Enter purchase price"
+                   class="px-3 py-2 text-sm rounded text-black" required />
+            <button type="submit"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Save to My Collection</button>
+          </div>
+        </form>
+        {% else %}
+        <p class="text-sm text-blue-300 mt-4">Log in to save this card to your collection.</p>
+        {% endif %}
+
         <div class="mt-6">
           <h2 class="text-md font-semibold mb-2">Price Trend</h2>
           <canvas id="priceChart" width="600" height="300" class="w-full max-w-full h-64"></canvas>
@@ -44,8 +80,6 @@
   <script>
     document.addEventListener("DOMContentLoaded", function () {
       const rawData = {{ price_data | safe }};
-
-      // Extract monthly price (first price of each month)
       const formatMonth = dateStr => `${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}`;
       const monthlyMap = {};
 
@@ -86,21 +120,15 @@
           },
           scales: {
             x: {
-              ticks: {
-                color: '#ffffff'
-              },
-              grid: {
-                color: 'rgba(255,255,255,0.1)'
-              }
+              ticks: { color: '#ffffff' },
+              grid: { color: 'rgba(255,255,255,0.1)' }
             },
             y: {
               ticks: {
                 color: '#ffffff',
                 callback: value => '¥' + value.toLocaleString()
               },
-              grid: {
-                color: 'rgba(255,255,255,0.1)'
-              }
+              grid: { color: 'rgba(255,255,255,0.1)' }
             }
           }
         }

@@ -22,20 +22,32 @@
 <body class="bg-gray-100 dark:bg-gray-900 dark:text-white min-h-screen">
   <!-- Navigation Bar -->
   <nav class="bg-white dark:bg-gray-800 shadow p-4 flex items-center justify-between">
-    <!-- Left: Logo Placeholder -->
+    <!-- Logo -->
     <div class="flex items-center gap-2">
-      <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>
+      <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="10" />
+      </svg>
       <span class="font-bold text-lg">CardTracker</span>
     </div>
 
-    <!-- Right: Links -->
+    <!-- Links -->
     <div class="flex items-center gap-6 font-semibold">
-      <a href="/" class="text-sm {% if request.path == '/' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">Explore All Cards</a>
+      <a href="/"
+         class="text-sm {% if request.path == '/' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">
+         Explore All Cards
+      </a>
+      <a href="/my-collection"
+         class="text-sm {% if request.path == '/my-collection' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">
+         My Collection
+      </a>
       {% if not session.get('user_id') %}
-        <a href="/login" class="text-sm {% if request.path == '/login' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">Log In</a>
+      <a href="/login"
+         class="text-sm {% if request.path == '/login' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">
+         Log In
+      </a>
       {% else %}
-        <span class="text-sm text-gray-400">Logged in as {{ session['username'] }}</span>
-        <a href="/logout" class="text-sm text-red-400 hover:text-red-600">Log Out</a>
+      <span class="text-sm text-gray-400">Logged in as {{ session['username'] }}</span>
+      <a href="/logout" class="text-sm text-red-400 hover:text-red-600">Log Out</a>
       {% endif %}
     </div>
   </nav>
@@ -43,9 +55,8 @@
   <div class="p-8">
     <h1 class="text-3xl font-bold mb-6 text-center">Pokémon Card Grid</h1>
 
-    <!-- Unified Filter Form -->
+    <!-- Filters -->
     <form method="get" class="flex flex-wrap items-center justify-center gap-4 mb-6">
-      <!-- Rarity Dropdown -->
       <div class="flex items-center gap-2">
         <label for="rarity" class="text-sm">Rarity:</label>
         <select name="rarity" id="rarity" class="px-2 py-1 rounded text-black">
@@ -56,7 +67,6 @@
         </select>
       </div>
 
-      <!-- Name Input -->
       <div class="flex items-center gap-2">
         <label for="name" class="text-sm">Name:</label>
         <input type="text" name="name" id="name"
@@ -66,12 +76,11 @@
         />
       </div>
 
-      <!-- Search Button -->
       <button type="submit" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">Search</button>
 
       {% if request.args.get('rarity') or request.args.get('name') %}
       <a href="{{ url_for('index') }}"
-         class="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600">Clear Filters</a>
+         class="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600">Clear</a>
       {% endif %}
     </form>
 
@@ -80,11 +89,9 @@
       {% for card in cards %}
       <a href="{{ url_for('card_detail', card_id=card.id) }}"
          class="bg-white dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg shadow hover:shadow-lg transition p-3 text-black dark:text-white relative">
-
         <img src="{{ card.image }}" alt="{{ card.name }}" class="w-full h-48 object-contain mb-2" />
         <h2 class="text-sm font-semibold">{{ card.name }}</h2>
         <p class="text-xs text-gray-500 dark:text-gray-400">{{ card.rarity }}</p>
-
         {% if card.price %}
         <p class="text-m font-semibold absolute bottom-2 right-2 text-emerald-200">¥{{ card.price | int }}</p>
         {% endif %}

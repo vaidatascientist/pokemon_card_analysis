@@ -16,6 +16,14 @@ def init_db():
                         username TEXT UNIQUE NOT NULL,
                         password_hash TEXT NOT NULL
                     )''')
+        c.execute('''CREATE TABLE IF NOT EXISTS user_cards (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_id INTEGER NOT NULL,
+                        card_id INTEGER NOT NULL,
+                        purchase_price REAL NOT NULL,
+                        purchase_date TEXT DEFAULT CURRENT_DATE,
+                        FOREIGN KEY (user_id) REFERENCES users(id)
+                    )''')
         conn.commit()
 
 @bp.route('/signup', methods=['GET', 'POST'])
