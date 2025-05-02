@@ -20,31 +20,17 @@
   </script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 dark:text-white min-h-screen">
-  <!-- Navigation Bar -->
+  <!-- Navigation -->
   <nav class="bg-white dark:bg-gray-800 shadow p-4 flex items-center justify-between">
-    <!-- Logo -->
     <div class="flex items-center gap-2">
-      <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
-        <circle cx="12" cy="12" r="10" />
-      </svg>
+      <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>
       <span class="font-bold text-lg">CardTracker</span>
     </div>
-
-    <!-- Links -->
     <div class="flex items-center gap-6 font-semibold">
-      <a href="/"
-         class="text-sm {% if request.path == '/' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">
-         Explore All Cards
-      </a>
-      <a href="/my-collection"
-         class="text-sm {% if request.path == '/my-collection' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">
-         My Collection
-      </a>
+      <a href="/" class="text-sm {% if request.path == '/' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">Explore All Cards</a>
+      <a href="/my-collection" class="text-sm {% if request.path == '/my-collection' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">My Collection</a>
       {% if not session.get('user_id') %}
-      <a href="/login"
-         class="text-sm {% if request.path == '/login' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">
-         Log In
-      </a>
+      <a href="/login" class="text-sm {% if request.path == '/login' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">Log In</a>
       {% else %}
       <span class="text-sm text-gray-400">Logged in as {{ session['username'] }}</span>
       <a href="/logout" class="text-sm text-red-400 hover:text-red-600">Log Out</a>
@@ -66,38 +52,70 @@
           {% endfor %}
         </select>
       </div>
-
       <div class="flex items-center gap-2">
         <label for="name" class="text-sm">Name:</label>
         <input type="text" name="name" id="name"
                value="{{ request.args.get('name', '') }}"
                placeholder="e.g., ピカチュウ"
-               class="px-2 py-1 rounded text-black"
-        />
+               class="px-2 py-1 rounded text-black" />
       </div>
-
       <button type="submit" class="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700">Search</button>
-
       {% if request.args.get('rarity') or request.args.get('name') %}
-      <a href="{{ url_for('index') }}"
-         class="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600">Clear</a>
+      <a href="{{ url_for('index') }}" class="px-3 py-1 bg-gray-500 text-white text-sm rounded hover:bg-gray-600">Clear</a>
       {% endif %}
     </form>
 
     <!-- Card Grid -->
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
       {% for card in cards %}
-      <a href="{{ url_for('card_detail', card_id=card.id) }}"
-         class="bg-white dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg shadow hover:shadow-lg transition p-3 text-black dark:text-white relative">
-        <img src="{{ card.image }}" alt="{{ card.name }}" class="w-full h-48 object-contain mb-2" />
-        <h2 class="text-sm font-semibold">{{ card.name }}</h2>
-        <p class="text-xs text-gray-500 dark:text-gray-400">{{ card.rarity }}</p>
-        {% if card.price %}
-        <p class="text-m font-semibold absolute bottom-2 right-2 text-emerald-200">¥{{ card.price | int }}</p>
+      <div class="relative bg-white dark:bg-gray-800 dark:hover:bg-gray-700 rounded-lg shadow hover:shadow-lg transition p-3 text-black dark:text-white">
+        {% if session.get('user_id') %}
+        <button onclick="openModal('{{ card.id }}')"
+                class="absolute top-2 left-2 w-6 h-6 rounded-full border-2 border-blue-400 flex items-center justify-center hover:bg-blue-500 transition z-10">
+          <svg class="w-4 h-4 text-blue-400 hover:text-white" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 17.27L18.18 21 16.54 13.97 22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+          </svg>
+        </button>
         {% endif %}
-      </a>
+        <a href="{{ url_for('card_detail', card_id=card.id) }}">
+          <img src="{{ card.image }}" alt="{{ card.name }}" class="w-full h-48 object-contain mb-2" />
+          <h2 class="text-sm font-semibold">{{ card.name }}</h2>
+          <p class="text-xs text-gray-500 dark:text-gray-400">{{ card.rarity }}</p>
+          {% if card.price %}
+          <p class="text-m font-semibold absolute bottom-2 right-2 text-emerald-200">¥{{ card.price | int }}</p>
+          {% endif %}
+        </a>
+      </div>
       {% endfor %}
     </div>
   </div>
+
+  <!-- Save Modal -->
+  <div id="saveModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white dark:bg-gray-800 p-6 rounded shadow-lg max-w-sm w-full">
+      <h2 class="text-lg font-bold mb-4">Add to My Collection</h2>
+      <form method="POST" action="/save-card">
+        <input type="hidden" name="card_id" id="modalCardId">
+        <label class="block text-sm mb-1">Purchase Price (¥):</label>
+        <input type="number" name="purchase_price" step="0.01" required class="w-full px-3 py-2 text-black rounded mb-4">
+        <div class="flex justify-end gap-2">
+          <button type="button" onclick="closeModal()" class="px-3 py-1 text-sm rounded border">Cancel</button>
+          <button type="submit" class="px-4 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function openModal(cardId) {
+      document.getElementById('modalCardId').value = cardId;
+      document.getElementById('saveModal').classList.remove('hidden');
+      document.getElementById('saveModal').classList.add('flex');
+    }
+    function closeModal() {
+      document.getElementById('saveModal').classList.remove('flex');
+      document.getElementById('saveModal').classList.add('hidden');
+    }
+  </script>
 </body>
 </html>

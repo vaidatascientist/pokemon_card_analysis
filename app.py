@@ -3,30 +3,30 @@ from urllib.parse import quote
 import json
 import pandas as pd
 import sqlite3
+from datetime import datetime
 from auth import bp as auth_bp, init_db, DB_PATH
 
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 app.register_blueprint(auth_bp)
 
-# Initialize the database (users.db)
+# Initialize the database
 init_db()
 
-# Load card data from CSV
+# Load card data
 card_df = pd.read_csv("./card_info/card_price.csv")
 
-# Prepare card list for homepage
 def load_cards():
     price_columns = [col for col in card_df.columns if col.startswith("p_")]
-    latest_col = price_columns[-1]  # last date column (most recent)
+    latest_col = price_columns[-1]
 
     cards = []
     for i, row in card_df.iterrows():
         cards.append({
-            "id": quote(str(i)),  # use row number as unique ID
-            "name": row['card_name'],
-            "image": row['img_src'],
-            "rarity": row['rarity'],
+            "id": quote(str(i)),
+            "name": row["card_name"],
+            "image": row["img_src"],
+            "rarity": row["rarity"],
             "price": row[latest_col]
         })
     return cards
@@ -63,20 +63,44 @@ def card_detail(card_id):
             return redirect(url_for("auth.login"))
 
         purchase_price = float(request.form["purchase_price"])
+        purchase_date = datetime.now().strftime('%Y-%m-%d')
+
         with sqlite3.connect(DB_PATH) as conn:
             c = conn.cursor()
             c.execute("""
-                INSERT INTO user_cards (user_id, card_id, purchase_price)
-                VALUES (?, ?, ?)
-            """, (session["user_id"], card_id, purchase_price))
+                INSERT INTO user_cards (user_id, card_id, purchase_price, purchase_date)
+                VALUES (?, ?, ?, ?)
+            """, (session["user_id"], card_id, purchase_price, purchase_date))
             conn.commit()
-            flash("Card saved to your collection!", "success")
-            return redirect(url_for("card_detail", card_id=card_id))
+
+        flash("Card saved to your collection!", "success")
+        return redirect(url_for("card_detail", card_id=card_id))
 
     return render_template("card_detail.html",
                            card=row.to_dict(),
                            price_data=json.dumps(price_data),
                            latest_price=int(latest_price) if pd.notnull(latest_price) else None)
+
+@app.route("/save-card", methods=["POST"])
+def save_card():
+    if "user_id" not in session:
+        flash("You must be logged in to save cards.", "error")
+        return redirect(url_for("auth.login"))
+
+    card_id = int(request.form["card_id"])
+    purchase_price = float(request.form["purchase_price"])
+    purchase_date = datetime.now().strftime('%Y-%m-%d')
+
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO user_cards (user_id, card_id, purchase_price, purchase_date)
+            VALUES (?, ?, ?, ?)
+        """, (session["user_id"], card_id, purchase_price, purchase_date))
+        conn.commit()
+
+    flash("Card saved to your collection!", "success")
+    return redirect(url_for("index"))
 
 @app.route("/my-collection")
 def my_collection():
@@ -86,19 +110,19 @@ def my_collection():
 
     with sqlite3.connect(DB_PATH) as conn:
         c = conn.cursor()
-        c.execute("SELECT card_id, purchase_price, purchase_date FROM user_cards WHERE user_id = ?", (session["user_id"],))
+        c.execute("SELECT id, card_id, purchase_price, purchase_date FROM user_cards WHERE user_id = ?", (session["user_id"],))
         saved_cards = c.fetchall()
 
     collection = []
-    for card_id, purchase_price, purchase_date in saved_cards:
+    for entry_id, card_id, purchase_price, purchase_date in saved_cards:
         row = card_df.iloc[card_id]
         price_cols = [col for col in card_df.columns if col.startswith("p_")]
         latest_price = row[price_cols[-1]]
         profit = latest_price - purchase_price if pd.notnull(latest_price) else None
         collection.append({
+            "entry_id": entry_id,
             "name": row["card_name"],
             "image": row["img_src"],
-            "pack": row.get("pack", ""),
             "rarity": row["rarity"],
             "purchase_price": purchase_price,
             "current_price": latest_price,
@@ -107,6 +131,20 @@ def my_collection():
         })
 
     return render_template("my_collection.html", collection=collection)
+
+@app.route("/delete-card/<int:entry_id>", methods=["POST"])
+def delete_card(entry_id):
+    if "user_id" not in session:
+        flash("You must be logged in to delete cards.", "error")
+        return redirect(url_for("auth.login"))
+
+    with sqlite3.connect(DB_PATH) as conn:
+        c = conn.cursor()
+        c.execute("DELETE FROM user_cards WHERE id = ? AND user_id = ?", (entry_id, session["user_id"]))
+        conn.commit()
+
+    flash("Card removed from your collection.", "info")
+    return redirect(url_for("my_collection"))
 
 if __name__ == "__main__":
     app.run(debug=True)

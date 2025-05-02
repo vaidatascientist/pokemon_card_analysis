@@ -20,20 +20,17 @@
   </script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 dark:text-white min-h-screen">
-  <!-- Navigation Bar -->
+  <!-- Navigation -->
   <nav class="bg-white dark:bg-gray-800 shadow p-4 flex items-center justify-between">
     <div class="flex items-center gap-2">
       <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /></svg>
       <span class="font-bold text-lg">CardTracker</span>
     </div>
     <div class="flex items-center gap-6 font-semibold">
-      <a href="/"
-         class="text-sm {% if request.path == '/' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">Explore All Cards</a>
-      <a href="/my-collection"
-         class="text-sm {% if request.path == '/my-collection' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">My Collection</a>
+      <a href="/" class="text-sm {% if request.path == '/' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">Explore All Cards</a>
+      <a href="/my-collection" class="text-sm {% if request.path == '/my-collection' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">My Collection</a>
       {% if not session.get('user_id') %}
-      <a href="/login"
-         class="text-sm {% if request.path == '/login' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">Log In</a>
+      <a href="/login" class="text-sm {% if request.path == '/login' %}text-blue-500{% else %}text-gray-700 dark:text-gray-200 hover:text-blue-600{% endif %}">Log In</a>
       {% else %}
       <span class="text-sm text-gray-400">Logged in as {{ session['username'] }}</span>
       <a href="/logout" class="text-sm text-red-400 hover:text-red-600">Log Out</a>
@@ -47,7 +44,7 @@
     {% if collection %}
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
       {% for card in collection %}
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 relative">
         <img src="{{ card.image }}" alt="{{ card.name }}" class="w-full h-48 object-contain mb-2" />
         <h2 class="text-lg font-bold">{{ card.name }}</h2>
         <p class="text-sm text-gray-400">{{ card.rarity }}</p>
@@ -62,6 +59,11 @@
         </p>
         {% endif %}
         <p class="text-xs text-gray-400 mt-2">Saved on: {{ card.purchase_date }}</p>
+
+        <!-- Delete button -->
+        <form action="{{ url_for('delete_card', entry_id=card.entry_id) }}" method="POST" class="mt-4">
+          <button type="submit" class="text-sm text-red-400 hover:text-red-600">Delete</button>
+        </form>
       </div>
       {% endfor %}
     </div>
