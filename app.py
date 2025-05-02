@@ -113,24 +113,30 @@ def my_collection():
         c.execute("SELECT id, card_id, purchase_price, purchase_date FROM user_cards WHERE user_id = ?", (session["user_id"],))
         saved_cards = c.fetchall()
 
-    collection = []
+    grouped = {}
     for entry_id, card_id, purchase_price, purchase_date in saved_cards:
-        row = card_df.iloc[card_id]
-        price_cols = [col for col in card_df.columns if col.startswith("p_")]
-        latest_price = row[price_cols[-1]]
-        profit = latest_price - purchase_price if pd.notnull(latest_price) else None
-        collection.append({
-            "entry_id": entry_id,
-            "name": row["card_name"],
-            "image": row["img_src"],
-            "rarity": row["rarity"],
-            "purchase_price": purchase_price,
-            "current_price": latest_price,
-            "profit": profit,
-            "purchase_date": purchase_date
-        })
+        key = (card_id, purchase_price)
+        if key not in grouped:
+            row = card_df.iloc[card_id]
+            price_cols = [col for col in card_df.columns if col.startswith("p_")]
+            latest_price = row[price_cols[-1]]
+            profit = latest_price - purchase_price if pd.notnull(latest_price) else None
+            grouped[key] = {
+                "entry_id": entry_id,  # any one of them (used for edit/delete)
+                "card_id": card_id,
+                "name": row["card_name"],
+                "image": row["img_src"],
+                "rarity": row["rarity"],
+                "purchase_price": purchase_price,
+                "current_price": latest_price,
+                "profit": profit,
+                "purchase_date": purchase_date,
+                "quantity": 1
+            }
+        else:
+            grouped[key]["quantity"] += 1
 
-    return render_template("my_collection.html", collection=collection)
+    return render_template("my_collection.html", collection=list(grouped.values()))
 
 @app.route("/delete-card/<int:entry_id>", methods=["POST"])
 def delete_card(entry_id):
