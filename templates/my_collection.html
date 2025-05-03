@@ -41,30 +41,43 @@
   <div class="p-8 max-w-6xl mx-auto">
     <h1 class="text-3xl font-bold mb-6 text-center">My Collection</h1>
 
-    {% if collection %}
+    {% if cards %}
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-      {% for card in collection %}
+      {% for card in cards %}
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 relative">
         <img src="{{ card.image }}" alt="{{ card.name }}" class="w-full h-48 object-contain mb-2" />
         <h2 class="text-lg font-bold">{{ card.name }}</h2>
-        <p class="text-sm text-gray-400">{{ card.rarity }}</p>
-        <p class="text-sm mt-2">Purchase Price: <span class="text-yellow-400 font-medium">¥{{ card.purchase_price | int }}</span></p>
-        <p class="text-sm">Current Price: <span class="text-green-300 font-medium">¥{{ card.current_price | int }}</span></p>
-        <p class="text-sm">Qty: <span class="font-semibold text-white">{{ card.quantity }}</span></p>
-        {% if card.profit is not none %}
-        <p class="text-sm mt-1">
-          Profit/Loss per unit:
-          <span class="{% if card.profit >= 0 %}text-green-400{% else %}text-red-400{% endif %} font-semibold">
-            ¥{{ "{:,}".format(card.profit | int) }}
-          </span>
-        </p>
-        {% endif %}
-        <p class="text-xs text-gray-400 mt-2">Saved on: {{ card.purchase_date }}</p>
+        <p class="text-sm text-gray-400 mb-2">{{ card.rarity }}</p>
 
-        <!-- Delete one of this card group -->
-        <form action="{{ url_for('delete_card', entry_id=card.entry_id) }}" method="POST" class="mt-4">
-          <button type="submit" class="text-sm text-red-400 hover:text-red-600">Delete One</button>
-        </form>
+        <button
+          data-target="details-{{ loop.index }}"
+          onclick="toggleDetails('details-{{ loop.index }}', this)"
+          class="text-sm text-blue-400 hover:text-blue-600 mb-2 transition">
+          Show Details
+        </button>
+
+        <div id="details-{{ loop.index }}" class="space-y-4 max-h-0 overflow-hidden transition-all duration-300">
+          {% for group in card.purchases %}
+          <div class="bg-gray-100 dark:bg-gray-700 p-3 rounded">
+            <p class="text-sm">Purchase Price: <span class="text-yellow-400 font-medium">¥{{ group.purchase_price | int }}</span></p>
+            <p class="text-sm">Current Price: <span class="text-green-300 font-medium">¥{{ card.latest_price | int }}</span></p>
+            <p class="text-sm">Qty: <span class="font-semibold text-white">{{ group.quantity }}</span></p>
+            {% if group.profit is not none %}
+            <p class="text-sm">
+              Profit/Loss per unit:
+              <span class="{% if group.profit >= 0 %}text-green-400{% else %}text-red-400{% endif %} font-semibold">
+                ¥{{ "{:,}".format(group.profit | int) }}
+              </span>
+            </p>
+            {% endif %}
+            <p class="text-xs text-gray-400">Saved on: {{ group.purchase_date }}</p>
+
+            <form action="{{ url_for('delete_card', entry_id=group.entry_id) }}" method="POST" class="mt-2">
+              <button type="submit" class="text-sm text-red-400 hover:text-red-600">Delete One</button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
       </div>
       {% endfor %}
     </div>
@@ -72,5 +85,34 @@
     <p class="text-center text-gray-400">You haven't saved any cards yet.</p>
     {% endif %}
   </div>
+
+  <script>
+    let activeDetails = null;
+
+    function toggleDetails(id, btn) {
+      const target = document.getElementById(id);
+
+      // Close previous if open
+      if (activeDetails && activeDetails !== target) {
+        activeDetails.classList.add("max-h-0", "overflow-hidden");
+        activeDetails.classList.remove("max-h-[1000px]");
+        const prevBtn = document.querySelector(`button[data-target='${activeDetails.id}']`);
+        if (prevBtn) prevBtn.textContent = "Show Details";
+      }
+
+      const isOpen = !target.classList.contains("max-h-0");
+      if (isOpen) {
+        target.classList.add("max-h-0", "overflow-hidden");
+        target.classList.remove("max-h-[1000px]");
+        btn.textContent = "Show Details";
+        activeDetails = null;
+      } else {
+        target.classList.remove("max-h-0", "overflow-hidden");
+        target.classList.add("max-h-[1000px]");
+        btn.textContent = "Hide Details";
+        activeDetails = target;
+      }
+    }
+  </script>
 </body>
 </html>
