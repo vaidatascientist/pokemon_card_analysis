@@ -14,7 +14,7 @@ app.register_blueprint(auth_bp)
 init_db()
 
 # Load card data
-card_df = pd.read_csv("./card_info/card_price.csv")
+card_df = pd.read_csv("./card_info/card_price_updated.csv", encoding="utf-8")
 
 def load_cards():
     price_columns = [col for col in card_df.columns if col.startswith("p_")]
